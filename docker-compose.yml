@@ -1,0 +1,65 @@
+version: "3.1"
+services:
+    php-fpm:
+      build: ./php-fpm/
+      working_dir: /var/www/html
+      container_name: ezf-app
+      environment:
+        XDEBUG_CONFIG: "remote_host=host.docker.internal remote_enable=1"
+        PHP_IDE_CONFIG: "serverName=EzDocker"
+      ports:
+        - 9002:9002 # ws app
+      volumes:
+        - ../:/var/www/html
+        - ./tmp/dump:/tmp/dump
+        - ./php-fpm/php-ini-overrides.ini:/etc/php/7.3/fpm/conf.d/99-overrides.ini
+        - ./php-fpm/fpm/pool.d/www.conf:/usr/local/etc/php-fpm.d/www.conf
+
+    nginx:
+      image: nginx:alpine
+      restart: always
+      container_name: ezf-nginx
+      build: ./nginx/
+      volumes:
+          # - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+          - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
+          - ./logs/nginx:/var/log/nginx
+      ports:
+        - 80:80
+      depends_on:
+        - php-fpm
+
+    mysql:
+      image: mysql:5.7
+      container_name: ezf-mysql
+      volumes:
+        - ./databases:/var/lib/mysql
+        - ./logs/mysql:/var/log/mysql
+      environment:
+        - MYSQL_ROOT_PASSWORD=BZQbdXhP7J*viO0%cJ0nPfu2
+        - MYSQL_DATABASE=ez-webinar
+        - MYSQL_USER=ezf
+        - MYSQL_PASSWORD=BZQbdXhP7J*viO0%cJ0nPfu2
+      ports:
+        - 3307:3306
+
+    redis:
+      image: redis
+      container_name: ezf-redis
+      restart: "no"
+      command: redis-server --requirepass 12345678
+      ports:
+        - 6379:6379
+
+    rabbitmq:
+      image: rabbitmq:management
+      container_name: ezf-rabbit
+      restart: "no"
+      hostname: rabbitmq
+      environment:
+        - RABBITMQ_DEFAULT_USER=guest
+        - RABBITMQ_DEFAULT_PASS=guest
+      ports:
+        - 15672:15672
+        - 5672:5672
+
